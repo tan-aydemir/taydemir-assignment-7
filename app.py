@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, url_for, session
 import numpy as np
 import matplotlib
+from torch import t
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -14,18 +15,17 @@ def generate_data(N, mu, beta0, beta1, sigma2, S):
     # Generate data and initial plots
 
     # TODO 1: Generate a random dataset X of size N with values between 0 and 1
-    X = np.random.uniform(0, 1, N)  # Replace with code to generate random values for X
+    X = np.random.rand(N)  # Replace with code to generate random values for X
 
     # TODO 2: Generate a random dataset Y using the specified beta0, beta1, mu, and sigma2
     # Y = beta0 + beta1 * X + mu + error term
-    error = np.random.normal(mu, np.sqrt(sigma2), N)
+    error = np.sqrt(sigma2) * np.random.randn(N)
     Y = beta0 + beta1 * X + mu + error  # Replace with code to generate Y
     print("Y IS ", Y)
 
     # TODO 3: Fit a linear regression model to X and Y
-    model = LinearRegression()# Initialize the LinearRegression model
-    X = X.reshape(-1, 1)
-    model.fit(X, Y)
+    model = LinearRegression()# the LinearRegression model
+    model.fit(X.reshape(-1, 1), Y)
     # None  # Fit the model to X and Y
     slope = model.coef_[0]  # Extract the slope (coefficient) from the fitted model
     intercept = model.intercept_ # Extract the intercept from the fitted model
@@ -33,13 +33,14 @@ def generate_data(N, mu, beta0, beta1, sigma2, S):
     # TODO 4: Generate a scatter plot of (X, Y) with the fitted regression line
     plot1_path = "static/plot1.png"
     # Replace with code to generate and save the scatter plot
-    plt.figure()
-    plt.scatter(X, Y, color="gray", label="Data")
-    plt.plot(X, model.predict(X), color="blue", label="Regression Line")
-    plt.legend()
+    plt.figure(figsize=(10, 5))
+    plt.scatter(X, Y, color="red", label="Data")
+    plt.plot(X, slope * X + intercept, color='red', label=f"Y = {slope:.3f}X + {intercept:.3f}")
     plt.xlabel("X")
     plt.ylabel("Y")
-    plt.title("Scatter Plot with Fitted Regression Line")
+    plt.title(f"Linear Regression: Y = {slope:.3f}X + {intercept:.3f}")
+    plt.legend()
+    plt.grid(True)
     plt.savefig(plot1_path)
     plt.close()
 
@@ -49,8 +50,8 @@ def generate_data(N, mu, beta0, beta1, sigma2, S):
 
     for _ in range(S):
         # TODO 6: Generate simulated datasets using the same beta0 and beta1
-        X_sim = np.random.uniform(0, 1, N)  # Replace with code to generate simulated X values
-        error = np.random.normal(mu, np.sqrt(sigma2), N)
+        X_sim = np.random.rand(N)  # Replace with code to generate simulated X values
+        error = np.sqrt(sigma2) * np.random.randn(N)
     
         Y_sim = beta0 + beta1 * X_sim + mu + error  # Replace with code to generate simulated Y values
         print(Y_sim)
@@ -197,23 +198,18 @@ def hypothesis_test():
     
 
     # TODO 11: If p_value is very small (e.g., <= 0.0001), set fun_message to a fun message
-    fun_message = "An amazingly small p_value!" if p_value <= 0.0001 else None
+    fun_message = "An amazingly small p_value! I like that." if p_value <= 0.0001 else None
 
     # TODO 12: Plot histogram of simulated statistics
     plot3_path = "static/plot3.png"
     # Replace with code to generate and save the plot
-    print("Simulated stats = ", simulated_stats)
-    plt.hist(simulated_stats, bins=30, color='blue', edgecolor='black', alpha=0.7)
-    
-    label_actual = f"Actual {parameter}"
-    label_hypothesized = f"Hypothesized {parameter}"
-    plt.axvline(x=hypothesized_value, color='red', linestyle='--', label=label_hypothesized)
-    plt.axvline(x=observed_stat, color='green', linestyle='--', label=label_actual)
+    print("Simulated Stats = ", simulated_stats)
+    plt.figure(figsize=(10, 5))
+    plt.hist(simulated_stats, bins=20, alpha=0.7, label="Simulated Statistics")
+    plt.axvline(observed_stat, color="red", linestyle="--", label=f"Observed {parameter.capitalize()}: {observed_stat:.2f}")
+    plt.axvline(hypothesized_value, color="blue", label=f"Hypothesized {parameter.capitalize()} (H0): {hypothesized_value:.2f}")
     plt.legend()
-    
-    plt.title(f"Hypothesis Test for {parameter}")
-    plt.xlabel(f"{parameter}")
-    plt.ylabel("Frequency")
+    plt.title(f"Hypothesis Test for {parameter.capitalize()}")
     plt.savefig(plot3_path)
     plt.close()
 
@@ -235,6 +231,7 @@ def hypothesis_test():
         fun_message=fun_message,
     )
 
+
 @app.route("/confidence_interval", methods=["POST"])
 def confidence_interval():
     # Retrieve data from session
@@ -253,7 +250,6 @@ def confidence_interval():
 
     parameter = request.form.get("parameter")
     confidence_level = float(request.form.get("confidence_level"))
-    print("Confidence Level =----", confidence_level)
 
     # Use the slopes or intercepts from the simulations
     if parameter == "slope":
@@ -265,21 +261,18 @@ def confidence_interval():
         observed_stat = intercept
         true_param = beta0
 
-    print("Before the mean estimates")
     # TODO 14: Calculate mean and standard deviation of the estimates
     mean_estimate = np.mean(estimates)
-    std_estimate = np.std(estimates, ddof=1)
-    print("After the mean estimates", mean_estimate, std_estimate)
+    std_estimate = np.std(estimates)
 
     # TODO 15: Calculate confidence interval for the parameter estimate
-    # Use the t-distribution and confidence_level
+    # Use the t-distribution and confidence_level 
     from scipy.stats import t
-    print("SCI PY TEST")
-    t_value = t.ppf((1 + confidence_level/100) / 2, df=S - 1)
-    ci_lower = mean_estimate - t_value * std_estimate / np.sqrt(S)
-    ci_upper = mean_estimate + t_value * std_estimate / np.sqrt(S)
-    print("Confidence interval is ", [ci_lower, ci_upper])
-    print("True param is: ", true_param)
+    
+    t_value = t.ppf((1 + confidence_level / 100) / 2, df=S - 1)
+    margin_of_error = t_value * std_estimate / np.sqrt(S)
+    ci_lower = mean_estimate - margin_of_error
+    ci_upper = mean_estimate + margin_of_error
 
     # TODO 16: Check if confidence interval includes true parameter
     includes_true = ci_lower <= true_param <= ci_upper
@@ -290,36 +283,16 @@ def confidence_interval():
     # Plot the true parameter value
     plot4_path = "static/plot4.png"
     # Write code here to generate and save the plot
-
-# Write code here to generate and save the plot
-    plt.figure()
-
-    # Scatter plot with slope estimates on the x-axis
-    plt.scatter(estimates, range(len(estimates)), color="gray", alpha=0.5, label="Simulated Estimates")
-
-    # Plot the mean estimate as a horizontal line
-    plt.vlines(x=mean_estimate, ymin=0, ymax=len(estimates) - 1, color="blue", label="Mean Estimate")
-
-    # Plot the confidence interval bounds as dashed vertical lines
-    plt.vlines(x=ci_lower, ymin=0, ymax=len(estimates) - 1, color="green", linestyle="--", label="Confidence Interval")
-    plt.vlines(x=ci_upper, ymin=0, ymax=len(estimates) - 1, color="green", linestyle="--")
-
-    # Plot the true parameter as a vertical line
-    plt.axvline(x=true_param, color="red", linestyle="-", label="True Parameter")
-
-    # Highlight the mean estimate if it includes the true parameter
-    plt.scatter(mean_estimate, len(estimates) // 2, color="blue" if includes_true else "orange", zorder=5)
-
-    # Set labels and title
-    plt.xlabel("Slope Estimate Value")
-    plt.ylabel("")  # Remove the y-axis label
-    plt.title("Confidence Interval for Parameter Estimate")
+    plt.figure(figsize=(10, 5))
+    plt.plot(estimates, 'o', color="gray", markersize=5, label="Simulated Estimates")
+    plt.axhline(mean_estimate, color="blue", linewidth=2, label="Mean Estimate")
+    plt.axhline(ci_lower, color="green", linestyle="--", label=f"{confidence_level}% Confidence Interva Lower Bound")
+    plt.axhline(ci_upper, color="green", linestyle="--", label=f"{confidence_level}% Confidence Interval Upper Bound")
+    plt.axhline(true_param, color="red", linestyle="-", label=f"True {parameter.capitalize()}")
     plt.legend()
-
-    # Save the plot
+    plt.title(f"{confidence_level}% Confidence Interval for {parameter.capitalize()}")
     plt.savefig(plot4_path)
     plt.close()
-
 
     # Return results to template
     return render_template(
