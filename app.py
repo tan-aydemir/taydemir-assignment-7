@@ -15,30 +15,27 @@ def generate_data(N, mu, beta0, beta1, sigma2, S):
     # Generate data and initial plots
 
     # TODO 1: Generate a random dataset X of size N with values between 0 and 1
-    X = np.random.rand(N)  # Replace with code to generate random values for X
+    X = np.random.rand(N)
 
     # TODO 2: Generate a random dataset Y using the specified beta0, beta1, mu, and sigma2
     # Y = beta0 + beta1 * X + mu + error term
-    error = np.sqrt(sigma2) * np.random.randn(N)
-    Y = beta0 + beta1 * X + mu + error  # Replace with code to generate Y
-    print("Y IS ", Y)
+    Y = beta0 + beta1 * X + mu + np.sqrt(sigma2) * np.random.randn(N)
 
     # TODO 3: Fit a linear regression model to X and Y
-    model = LinearRegression()# the LinearRegression model
-    model.fit(X.reshape(-1, 1), Y)
-    # None  # Fit the model to X and Y
+    model = LinearRegression()  # Initialize the LinearRegression model
+    model.fit(X.reshape(-1, 1), Y)  # Fit the model to X and Y
     slope = model.coef_[0]  # Extract the slope (coefficient) from the fitted model
-    intercept = model.intercept_ # Extract the intercept from the fitted model
+    intercept = model.intercept_  # Extract the intercept from the fitted model
 
     # TODO 4: Generate a scatter plot of (X, Y) with the fitted regression line
     plot1_path = "static/plot1.png"
     # Replace with code to generate and save the scatter plot
     plt.figure(figsize=(10, 5))
-    plt.scatter(X, Y, color="red", label="Data")
-    plt.plot(X, slope * X + intercept, color='red', label=f"Y = {slope:.3f}X + {intercept:.3f}")
+    plt.scatter(X, Y, color="blue", label="Data")
+    plt.plot(X, slope * X + intercept, color='red', label=f"Y = {slope:.2f}X + {intercept:.2f}")
     plt.xlabel("X")
     plt.ylabel("Y")
-    plt.title(f"Linear Regression: Y = {slope:.3f}X + {intercept:.3f}")
+    plt.title(f"Linear Regression: Y = {slope:.2f}X + {intercept:.2f}")
     plt.legend()
     plt.grid(True)
     plt.savefig(plot1_path)
@@ -51,10 +48,8 @@ def generate_data(N, mu, beta0, beta1, sigma2, S):
     for _ in range(S):
         # TODO 6: Generate simulated datasets using the same beta0 and beta1
         X_sim = np.random.rand(N)  # Replace with code to generate simulated X values
-        error = np.sqrt(sigma2) * np.random.randn(N)
-    
-        Y_sim = beta0 + beta1 * X_sim + mu + error  # Replace with code to generate simulated Y values
-        print(Y_sim)
+        Y_sim = beta0 + beta1 * X_sim + mu + np.sqrt(sigma2) * np.random.randn(N)  # Replace with code to generate simulated Y values
+
         # TODO 7: Fit linear regression to simulated data and store slope and intercept
         sim_model = LinearRegression()  # Replace with code to fit the model
         sim_model.fit(X_sim.reshape(-1, 1), Y_sim)
@@ -63,26 +58,27 @@ def generate_data(N, mu, beta0, beta1, sigma2, S):
 
         slopes.append(sim_slope)
         intercepts.append(sim_intercept)
-        
-    print("Slopes ", slopes)
-    print("Intercepts ", intercepts)
-    # TODO 8: Plot histograms of slopes and intercepts
+
+
+ # TODO 8: Plot histograms of slopes and intercepts
     plot2_path = "static/plot2.png"
     # Replace with code to generate and save the histogram plot
-    plt.figure()
-    plt.hist(slopes, bins=30, color="gray", edgecolor="black")
-    plt.axvline(x=slope, color="red", label="Observed Slope")
-    plt.xlabel("Simulated Slopes")
+    plt.figure(figsize=(10, 5))
+    plt.hist(slopes, bins=20, alpha=0.5, color="blue", label="Slopes")
+    plt.hist(intercepts, bins=20, alpha=0.5, color="orange", label="Intercepts")
+    plt.axvline(slope, color="blue", linestyle="--", linewidth=1, label=f"Slope: {slope:.2f}")
+    plt.axvline(intercept, color="orange", linestyle="--", linewidth=1, label=f"Intercept: {intercept:.2f}")
+    plt.title("Histogram of Slopes and Intercepts")
+    plt.xlabel("Value")
     plt.ylabel("Frequency")
-    plt.title("Histogram of Simulated Slopes")
     plt.legend()
     plt.savefig(plot2_path)
     plt.close()
 
     # TODO 9: Return data needed for further analysis, including slopes and intercepts
     # Calculate proportions of slopes and intercepts more extreme than observed
-    slope_more_extreme = np.mean(np.abs(slopes) >= np.abs(slope))  # Replace with code to calculate proportion of slopes more extreme than observed
-    intercept_extreme = np.mean(np.abs(intercepts) >= np.abs(intercept))  # Replace with code to calculate proportion of intercepts more extreme than observed
+    slope_more_extreme = sum(abs(s) >= abs(slope) for s in slopes) / S  # Replace with code to calculate proportion of slopes more extreme than observed
+    intercept_extreme = sum(abs(i) >= abs(intercept) for i in intercepts) / S  # Replace with code to calculate proportion of intercepts more extreme than observed
 
     # Return data needed for further analysis
     return (
@@ -174,7 +170,6 @@ def hypothesis_test():
     intercepts = session.get("intercepts")
     beta0 = float(session.get("beta0"))
     beta1 = float(session.get("beta1"))
-    print("SLOPE IS", slope)
 
     parameter = request.form.get("parameter")
     test_type = request.form.get("test_type")
@@ -203,7 +198,6 @@ def hypothesis_test():
     # TODO 12: Plot histogram of simulated statistics
     plot3_path = "static/plot3.png"
     # Replace with code to generate and save the plot
-    print("Simulated Stats = ", simulated_stats)
     plt.figure(figsize=(10, 5))
     plt.hist(simulated_stats, bins=20, alpha=0.7, label="Simulated Statistics")
     plt.axvline(observed_stat, color="red", linestyle="--", label=f"Observed {parameter.capitalize()}: {observed_stat:.2f}")
@@ -286,7 +280,7 @@ def confidence_interval():
     plt.figure(figsize=(10, 5))
     plt.plot(estimates, 'o', color="gray", markersize=5, label="Simulated Estimates")
     plt.axhline(mean_estimate, color="blue", linewidth=2, label="Mean Estimate")
-    plt.axhline(ci_lower, color="green", linestyle="--", label=f"{confidence_level}% Confidence Interva Lower Bound")
+    plt.axhline(ci_lower, color="green", linestyle="--", label=f"{confidence_level}% Confidence Interval Lower Bound")
     plt.axhline(ci_upper, color="green", linestyle="--", label=f"{confidence_level}% Confidence Interval Upper Bound")
     plt.axhline(true_param, color="red", linestyle="-", label=f"True {parameter.capitalize()}")
     plt.legend()
